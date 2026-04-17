@@ -1,0 +1,67 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="109" y1="84" x2="1715" y2="955" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4D6"/>
+      <stop offset="0.48" stop-color="#FFE2EC"/>
+      <stop offset="1" stop-color="#DDEEFF"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="1090" y1="218" x2="1600" y2="768" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8F4FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <circle cx="1565" cy="176" r="173" fill="#FFD479" fill-opacity="0.34"/>
+  <circle cx="1764" cy="879" r="221" fill="#8EC5FF" fill-opacity="0.22"/>
+  <circle cx="185" cy="958" r="253" fill="#FF91A4" fill-opacity="0.16"/>
+
+  <rect x="88" y="88" width="1744" height="904" rx="44" fill="#FFFFFF" fill-opacity="0.66"/>
+  <rect x="108" y="108" width="1704" height="864" rx="36" fill="#FFFFFF"/>
+
+  <text x="154" y="205" fill="#0F172A" font-family="Helvetica, Arial, sans-serif" font-size="86" font-weight="700">FigJam Workshop AI</text>
+  <text x="154" y="278" fill="#FF7A59" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="3">SPATIAL EDITING FOR FIGJAM</text>
+  <text x="154" y="372" fill="#334155" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="400">
+    Turn plain-language instructions into smart board edits.
+  </text>
+  <text x="154" y="432" fill="#334155" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="400">
+    Update text, reshape repeated layouts, restyle sections,
+  </text>
+  <text x="154" y="492" fill="#334155" font-family="Helvetica, Arial, sans-serif" font-size="42" font-weight="400">
+    and reorganize workshop content without moving everything by hand.
+  </text>
+
+  <rect x="154" y="582" width="342" height="116" rx="28" fill="#0F172A"/>
+  <text x="195" y="653" fill="#FFF8E8" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700">Natural language</text>
+  <rect x="520" y="582" width="296" height="116" rx="28" fill="#FFF1C2"/>
+  <text x="561" y="653" fill="#8A4B00" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700">Spatial context</text>
+  <rect x="840" y="582" width="286" height="116" rx="28" fill="#E7F5EA"/>
+  <text x="883" y="653" fill="#166534" font-family="Helvetica, Arial, sans-serif" font-size="40" font-weight="700">Board-aware edits</text>
+
+  <rect x="1139" y="182" width="566" height="616" rx="36" fill="url(#hero)"/>
+  <rect x="1175" y="218" width="494" height="544" rx="26" fill="#0F172A" fill-opacity="0.04"/>
+
+  <text x="1218" y="286" fill="#0F172A" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700">Selected pattern</text>
+
+  <rect x="1218" y="331" width="82" height="82" rx="18" fill="#F79AD3"/>
+  <rect x="1322" y="331" width="82" height="82" rx="18" fill="#F79AD3"/>
+  <rect x="1426" y="331" width="82" height="82" rx="18" fill="#F79AD3"/>
+  <rect x="1218" y="435" width="82" height="82" rx="18" fill="#9ED0F5"/>
+  <rect x="1322" y="435" width="82" height="82" rx="18" fill="#9ED0F5"/>
+  <rect x="1426" y="435" width="82" height="82" rx="18" fill="#9ED0F5"/>
+  <rect x="1218" y="539" width="82" height="82" rx="18" fill="#AEE9B7"/>
+  <rect x="1322" y="539" width="82" height="82" rx="18" fill="#AEE9B7"/>
+  <rect x="1426" y="539" width="82" height="82" rx="18" fill="#AEE9B7"/>
+
+  <path d="M1556 399L1645 592L1576 565L1538 626L1454 432L1556 399Z" fill="#0F172A"/>
+  <path d="M1547 424L1611 565L1565 548L1537 592L1475 448L1547 424Z" fill="#FFF8E8"/>
+
+  <text x="1218" y="704" fill="#334155" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="400">
+    "Make this for 3 people and populate their names"
+  </text>
+
+  <text x="154" y="842" fill="#0F172A" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700">Built for workshop boards, templates, and repeated structures</text>
+  <text x="154" y="900" fill="#475569" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="400">
+    Works best when you select the area you want to edit and let the plugin use nearby layout context.
+  </text>
+</svg>

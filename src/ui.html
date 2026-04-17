@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FigJam Workshop AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #1a1a1a;
+      font-size: 13px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #e8e8e8;
+      flex-shrink: 0;
+    }
+    .title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Selection badge ── */
+    .selection-badge {
+      margin: 8px 14px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      border: 1px solid #e0e0e0;
+      background: #f7f7f7;
+      color: #888;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .selection-badge.has-selection { color: #1a7a46; border-color: #b8e6cd; background: #f0faf4; }
+    .selection-badge.no-selection  { color: #b45309; border-color: #fcd5a0; background: #fffbf5; }
+
+    /* ── API key row ── */
+    .api-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px 0;
+      flex-shrink: 0;
+    }
+    .api-row label {
+      font-size: 11px;
+      color: #999;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .api-row input {
+      flex: 1;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      color: #555;
+      font-size: 12px;
+      padding: 5px 8px;
+      outline: none;
+      font-family: monospace;
+      transition: border-color 0.15s;
+    }
+    .api-row input:focus { border-color: #4f6ef7; color: #1a1a1a; }
+
+    /* ── Chat history ── */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-track { background: transparent; }
+    .chat-area::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+    /* ── Message bubbles ── */
+    .msg {
+      max-width: 88%;
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: #4f6ef7;
+      color: #fff;
+      border-bottom-right-radius: 3px;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: #f3f3f3;
+      color: #1a1a1a;
+      border: 1px solid #e8e8e8;
+      border-bottom-left-radius: 3px;
+    }
+    .msg.error {
+      align-self: flex-start;
+      background: #fff5f5;
+      color: #c0392b;
+      border: 1px solid #fcc;
+      border-bottom-left-radius: 3px;
+      font-size: 12px;
+    }
+    .msg.system {
+      align-self: center;
+      background: transparent;
+      color: #bbb;
+      font-size: 11px;
+      border: none;
+      padding: 2px 0;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    /* Applied badge inside assistant bubble */
+    .applied-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 8px;
+      background: #e6f4ee;
+      color: #1a7a46;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .applied-badge.warn { background: #fff8e6; color: #b45309; }
+
+    /* Thinking indicator */
+    .thinking {
+      align-self: flex-start;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 10px 14px;
+      background: #f3f3f3;
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
+      border-bottom-left-radius: 3px;
+    }
+    .dot {
+      width: 6px; height: 6px;
+      background: #ccc;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-5px); background: #4f6ef7; }
+    }
+
+    /* ── Input row ── */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      padding: 10px 14px 12px;
+      border-top: 1px solid #e8e8e8;
+      flex-shrink: 0;
+    }
+    .msg-input {
+      flex: 1;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      color: #1a1a1a;
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.5;
+      max-height: 100px;
+      overflow-y: auto;
+      transition: border-color 0.15s;
+    }
+    .msg-input:focus { border-color: #4f6ef7; background: #fff; }
+    .msg-input::placeholder { color: #bbb; }
+
+    .send-btn {
+      background: #4f6ef7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .send-btn:hover:not(:disabled) { background: #3d5ce0; }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Help panel ── */
+    .help-btn {
+      background: none;
+      border: 1px solid #ddd;
+      color: #999;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s;
+      line-height: 1;
+    }
+    .help-btn:hover { border-color: #4f6ef7; color: #4f6ef7; }
+    .help-btn.active { border-color: #4f6ef7; color: #4f6ef7; background: #f0f3ff; }
+
+    .help-panel {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      margin: 8px 14px 0;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .help-panel.visible { display: flex; }
+
+    .help-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 7px 10px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+    }
+    .help-row:last-child { border-bottom: none; }
+    .help-action {
+      font-family: monospace;
+      font-size: 11px;
+      color: #4f6ef7;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .help-desc { color: #666; line-height: 1.4; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #ccc;
+      font-size: 12px;
+      text-align: center;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+    .empty-state svg { opacity: 0.4; }
+    .empty-state p { line-height: 1.6; color: #bbb; }
+  </style>
+</head>
+<body>
+
+  <div class="header" style="display:flex;align-items:center;justify-content:space-between;">
+    <span class="title">FigJam Workshop AI</span>
+    <button class="help-btn" id="helpBtn" title="What can this do?">?</button>
+  </div>
+
+  <div class="help-panel" id="helpPanel">
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">Text</div>
+    <div class="help-row"><span class="help-action">update_text</span><span class="help-desc">Change the text content of a sticky, label, or text block</span></div>
+    <div class="help-row"><span class="help-action">set_font_size</span><span class="help-desc">Set the font size of a text node</span></div>
+    <div class="help-row"><span class="help-action">set_font_color</span><span class="help-desc">Set the text color (r, g, b values 0–1)</span></div>
+    <div class="help-row"><span class="help-action">set_text_align</span><span class="help-desc">Set horizontal/vertical text alignment</span></div>
+    <div class="help-row"><span class="help-action">set_text_decoration</span><span class="help-desc">Underline or strikethrough text</span></div>
+    <div class="help-row"><span class="help-action">set_text_case</span><span class="help-desc">Transform text to UPPER, lower, or Title case</span></div>
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">Position & Size</div>
+    <div class="help-row"><span class="help-action">move_node</span><span class="help-desc">Move a node to an absolute x/y position</span></div>
+    <div class="help-row"><span class="help-action">move_nodes_down</span><span class="help-desc">Shift nodes down by a pixel amount</span></div>
+    <div class="help-row"><span class="help-action">resize_node</span><span class="help-desc">Set a node's width and height</span></div>
+    <div class="help-row"><span class="help-action">rotate_node</span><span class="help-desc">Rotate a node to a degree value (−180 to 180)</span></div>
+    <div class="help-row"><span class="help-action">reposition_section</span><span class="help-desc">Move a section to a specific x/y coordinate</span></div>
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">Visual</div>
+    <div class="help-row"><span class="help-action">set_fill_color</span><span class="help-desc">Set the background/fill color of any node</span></div>
+    <div class="help-row"><span class="help-action">set_stroke</span><span class="help-desc">Set stroke color and weight on a node</span></div>
+    <div class="help-row"><span class="help-action">set_opacity</span><span class="help-desc">Set opacity (0–1) of a node</span></div>
+    <div class="help-row"><span class="help-action">set_corner_radius</span><span class="help-desc">Round the corners of a frame or rectangle</span></div>
+    <div class="help-row"><span class="help-action">set_visible</span><span class="help-desc">Show or hide a node</span></div>
+    <div class="help-row"><span class="help-action">set_blend_mode</span><span class="help-desc">Set blend mode (NORMAL, MULTIPLY, SCREEN, etc.)</span></div>
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">Node Management</div>
+    <div class="help-row"><span class="help-action">lock_nodes</span><span class="help-desc">Lock nodes so they can't be moved or edited</span></div>
+    <div class="help-row"><span class="help-action">unlock_nodes</span><span class="help-desc">Unlock nodes to make them editable again</span></div>
+    <div class="help-row"><span class="help-action">rename_node</span><span class="help-desc">Rename a node</span></div>
+    <div class="help-row"><span class="help-action">delete_nodes</span><span class="help-desc">Delete one or more nodes from the board</span></div>
+    <div class="help-row"><span class="help-action">duplicate_node</span><span class="help-desc">Clone a node with an optional x/y offset</span></div>
+    <div class="help-row"><span class="help-action">duplicate_section</span><span class="help-desc">Clone a section, optionally into a new parent</span></div>
+    <div class="help-row"><span class="help-action">group_nodes</span><span class="help-desc">Group two or more nodes together</span></div>
+    <div class="help-row"><span class="help-action">ungroup_node</span><span class="help-desc">Ungroup a group node</span></div>
+    <div class="help-row"><span class="help-action">move_to_front</span><span class="help-desc">Bring a node to the front (top of z-order)</span></div>
+    <div class="help-row"><span class="help-action">move_to_back</span><span class="help-desc">Send a node to the back (bottom of z-order)</span></div>
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">Create</div>
+    <div class="help-row"><span class="help-action">insert_new_sticky</span><span class="help-desc">Add a new sticky note at a position or after a node</span></div>
+    <div class="help-row"><span class="help-action">insert_frame</span><span class="help-desc">Create a new frame at x/y with width/height</span></div>
+    <div class="help-row"><span class="help-action">insert_text</span><span class="help-desc">Create a new text node at x/y</span></div>
+    <div class="help-row"><span class="help-action">insert_section</span><span class="help-desc">Create a new section at x/y with width/height</span></div>
+    <div class="help-row"><span class="help-action">insert_rectangle</span><span class="help-desc">Create a rectangle shape</span></div>
+    <div class="help-row"><span class="help-action">insert_ellipse</span><span class="help-desc">Create an ellipse/circle shape</span></div>
+    <div class="help-row" style="background:#f7f7f7;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;">FigJam</div>
+    <div class="help-row"><span class="help-action">set_sticky_color</span><span class="help-desc">Change the background color of a sticky note</span></div>
+    <div class="help-row"><span class="help-action">set_section_hidden</span><span class="help-desc">Collapse or expand a section's contents</span></div>
+    <div class="help-row"><span class="help-action">scroll_into_view</span><span class="help-desc">Scroll the viewport to show specific nodes</span></div>
+  </div>
+
+  <div id="selectionBadge" class="selection-badge no-selection">
+    No selection — will use full board
+  </div>
+
+  <div class="api-row">
+    <label for="apiKeyInput">API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state" id="emptyState">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p>Select elements on the board and<br>describe what you want to change.</p>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <textarea
+      class="msg-input"
+      id="msgInput"
+      placeholder="Describe a change… (Enter to send)"
+      rows="1"
+      spellcheck="false"
+    ></textarea>
+    <button class="send-btn" id="sendBtn" title="Send (Enter)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    // ─── Constants ──────────────────────────────────────────────────────────
+
+    const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+
+    const SYSTEM_PROMPT = `You are an AI assistant for FigJam workshop boards.
+Given board context and a user instruction, return ONLY a valid JSON object — no markdown, no explanation, no code fences.
+
+Required output shape:
+{ "actions": [ ...actions... ], "summary": "One sentence describing what you did" }
+
+COMPLETE LIST OF ALLOWED ACTIONS (use ONLY these, never invent others):
+
+TEXT:
+  update_text         → { action, target, value }
+  set_font_size       → { action, target, size: <number> }
+  set_font_color      → { action, target, r, g, b, a? }   // r/g/b/a are 0–1
+  set_text_align      → { action, target, horizontal?: "LEFT"|"CENTER"|"RIGHT"|"JUSTIFIED", vertical?: "TOP"|"CENTER"|"BOTTOM" }
+  set_text_decoration → { action, target, decoration: "NONE"|"UNDERLINE"|"STRIKETHROUGH" }
+  set_text_case       → { action, target, textCase: "ORIGINAL"|"UPPER"|"LOWER"|"TITLE" }
+
+POSITION & SIZE:
+  move_node           → { action, target, x?, y? }
+  move_nodes_down     → { action, target_group: [ids], distance: <pixels> }
+  resize_node         → { action, target, width, height }
+  rotate_node         → { action, target, rotation: <degrees -180 to 180> }
+  reposition_section  → { action, section_id, new_x, new_y }
+
+VISUAL:
+  set_fill_color      → { action, target, r, g, b, a? }
+  set_stroke          → { action, target, r, g, b, a?, weight? }
+  set_opacity         → { action, target, opacity: <0–1> }
+  set_corner_radius   → { action, target, radius: <number> }
+  set_visible         → { action, target, visible: true|false }
+  set_blend_mode      → { action, target, blendMode: "NORMAL"|"MULTIPLY"|"SCREEN"|"OVERLAY"|"DARKEN"|"LIGHTEN"|"COLOR_DODGE"|"COLOR_BURN"|"HARD_LIGHT"|"SOFT_LIGHT"|"DIFFERENCE"|"EXCLUSION"|"HUE"|"SATURATION"|"COLOR"|"LUMINOSITY" }
+
+NODE MANAGEMENT:
+  lock_nodes          → { action, node_ids: [ids] }
+  unlock_nodes        → { action, node_ids: [ids] }
+  rename_node         → { action, target, name }
+  delete_nodes        → { action, node_ids: [ids] }
+  duplicate_node      → { action, source_id, offset_x?, offset_y? }
+  duplicate_section   → { action, source_id, new_parent_id?, offset_x?, offset_y? }
+  group_nodes         → { action, node_ids: [ids], name? }
+  ungroup_node        → { action, target }
+  move_to_front       → { action, target }
+  move_to_back        → { action, target }
+
+CREATE:
+  insert_new_sticky   → { action, text, position: {x,y} OR {after: nodeId}, parent_id? }
+  insert_frame        → { action, x, y, width, height, name?, parent_id? }
+  insert_text         → { action, x, y, text, parent_id? }
+  insert_section      → { action, x, y, width, height, name? }
+  insert_rectangle    → { action, x, y, width, height, parent_id? }
+  insert_ellipse      → { action, x, y, width, height, parent_id? }
+
+FIGJAM:
+  set_sticky_color    → { action, target, r, g, b }   // r/g/b 0–1; yellow ≈ {r:1,g:0.95,b:0.4}
+  set_section_hidden  → { action, target, hidden: true|false }
+  scroll_into_view    → { action, node_ids: [ids] }
+
+RULES:
+- "Selected nodes" = what the user has highlighted. "this"/"these"/"it" refer to selected nodes.
+- Prefer acting on selected nodes unless the instruction clearly says otherwise.
+- Use EXACT node IDs from the provided JSON — never invent IDs.
+- Use x/y/width/height to infer reading order, rows, columns, repeated groups, and nearby context before choosing actions.
+- Prefer preserving existing layout patterns. When editing repeated grids or lists, keep spacing/alignment consistent instead of making arbitrary changes.
+- When reducing a repeated set to N items, keep the top-left-most items in reading order unless the user says otherwise, and assign provided names/text in that same reading order.
+- Prefer updating existing nodes in place over recreating them when the layout already exists.
+- When the user refers to ordinal items like "1st", "2nd", "3rd", or "the next one", use the spatial group summaries and reading order to map those references to contiguous groups of nodes, not arbitrary single nodes.
+- For swaps or reordering, preserve each group's internal layout and move all nodes in the group together.
+- For duplicate_node and duplicate_section, do not rely on implicit placement. Always provide explicit offset_x/offset_y or explicit destination x/y logic based on observed spacing.
+- Use duplicate_section only when the user is duplicating an entire section. For adding more cards/people/items inside a section, prefer duplicating or inserting the individual repeated items with spacing derived from nearby nodes.
+- Respect node-type limits from the provided JSON. Example: SECTION nodes support fills, visibility, position, duplication, and hiding contents, but do NOT support strokes or corner radius.
+- For legibility/readability requests, prefer changing text color based on textColor and surrounding fillColor. Use white text on dark backgrounds and near-black text on light backgrounds.
+- Do not use set_opacity to solve legibility unless the text is actually translucent.
+- Colors: r/g/b/a are all 0–1 floats (e.g. red = r:1,g:0,b:0).
+- If the instruction cannot be fulfilled with these actions, set "actions":[] and explain in "summary".`;
+
+    const KNOWN_ACTIONS = new Set([
+      'update_text','set_font_size','set_font_color','set_text_align','set_text_decoration','set_text_case',
+      'move_node','move_nodes_down','resize_node','rotate_node','reposition_section',
+      'set_fill_color','set_stroke','set_opacity','set_corner_radius','set_visible','set_blend_mode',
+      'lock_nodes','unlock_nodes','rename_node','delete_nodes','duplicate_node',
+      'duplicate_section','group_nodes','ungroup_node','move_to_front','move_to_back',
+      'insert_new_sticky','insert_frame','insert_text','insert_section','insert_rectangle','insert_ellipse',
+      'set_sticky_color','set_section_hidden','scroll_into_view',
+    ]);
+
+    // ─── State ──────────────────────────────────────────────────────────────
+
+    let selectedNodes  = [];   // nodes the user has highlighted
+    let fullBoard      = [];   // all top-level page nodes (fallback)
+    let hasSelection   = false;
+    let isLoading      = false;
+    let selectionResolvers = [];  // for fresh-selection-on-send
+
+    // ─── Elements ───────────────────────────────────────────────────────────
+
+    const chatArea       = document.getElementById('chatArea');
+    const emptyState     = document.getElementById('emptyState');
+    const selectionBadge = document.getElementById('selectionBadge');
+    const msgInput       = document.getElementById('msgInput');
+    const sendBtn        = document.getElementById('sendBtn');
+    const apiKeyInput    = document.getElementById('apiKeyInput');
+
+    // Load persisted API key via figma.clientStorage (localStorage is blocked in data: URLs)
+    parent.postMessage({ pluginMessage: { type: 'get-api-key' } }, '*');
+
+    let saveKeyTimer = null;
+    apiKeyInput.addEventListener('input', () => {
+      clearTimeout(saveKeyTimer);
+      saveKeyTimer = setTimeout(() => {
+        parent.postMessage({ pluginMessage: { type: 'save-api-key', key: apiKeyInput.value } }, '*');
+      }, 500);
+    });
+
+    // ─── Selection badge ─────────────────────────────────────────────────────
+
+    function updateSelectionBadge(nodes, snap, sel) {
+      selectedNodes = nodes || [];
+      fullBoard     = snap  || [];
+      hasSelection  = sel;
+
+      // Resolve any pending fresh-selection promises
+      selectionResolvers.forEach(fn => fn());
+      selectionResolvers = [];
+
+      if (sel && nodes && nodes.length > 0) {
+        const counts = {};
+        function countAll(list) {
+          for (const n of list) {
+            counts[n.type] = (counts[n.type] || 0) + 1;
+            if (n.children) countAll(n.children);
+          }
+        }
+        countAll(nodes);
+        const parts = Object.entries(counts).map(([t, c]) => `${c} ${t}`);
+        selectionBadge.textContent = parts.join(', ') + ' selected';
+        selectionBadge.className = 'selection-badge has-selection';
+      } else {
+        selectionBadge.textContent = 'No selection — using full board (' + (snap ? snap.length : 0) + ' nodes)';
+        selectionBadge.className = 'selection-badge no-selection';
+      }
+    }
+
+    // Request a fresh selection from code.ts and wait for the response
+    function getFreshSelection() {
+      return new Promise((resolve) => {
+        selectionResolvers.push(resolve);
+        parent.postMessage({ pluginMessage: { type: 'request-selection' } }, '*');
+        // Fallback: resolve with current state after 600ms if no response
+        setTimeout(resolve, 600);
+      });
+    }
+
+    // ─── Chat rendering ──────────────────────────────────────────────────────
+
+    function hideEmpty() {
+      if (emptyState) emptyState.style.display = 'none';
+    }
+
+    function addMessage(role, text, extra) {
+      hideEmpty();
+      const el = document.createElement('div');
+      el.className = 'msg ' + role;
+      el.textContent = text;
+
+      if (extra) {
+        const badge = document.createElement('div');
+        badge.className = 'applied-badge' + (extra.warn ? ' warn' : '');
+        badge.textContent = extra.text;
+        el.appendChild(document.createElement('br'));
+        el.appendChild(badge);
+      }
+
+      chatArea.appendChild(el);
+      chatArea.scrollTop = chatArea.scrollHeight;
+      return el;
+    }
+
+    let thinkingEl = null;
+
+    function showThinking() {
+      hideEmpty();
+      thinkingEl = document.createElement('div');
+      thinkingEl.className = 'thinking';
+      thinkingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      chatArea.appendChild(thinkingEl);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function hideThinking() {
+      if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+    }
+
+    function flattenNodes(nodes, depth = 0, parentId = null, out = []) {
+      for (const node of nodes || []) {
+        const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+        out.push({
+          id: node.id,
+          type: node.type,
+          name: node.name || '',
+          x: node.x ?? 0,
+          y: node.y ?? 0,
+          width: node.width ?? 0,
+          height: node.height ?? 0,
+          characters: node.characters || '',
+          parentId,
+          depth,
+          hasChildren,
+        });
+        if (hasChildren) flattenNodes(node.children, depth + 1, node.id, out);
+      }
+      return out;
+    }
+
+    function sortByReadingOrder(nodes) {
+      return [...nodes].sort((a, b) => {
+        const rowTolerance = Math.max(24, Math.min(a.height || 24, b.height || 24) * 0.45);
+        if (Math.abs(a.y - b.y) <= rowTolerance) return a.x - b.x;
+        return a.y - b.y;
+      });
+    }
+
+    function clusterByAxis(nodes, axis) {
+      const sorted = [...nodes].sort((a, b) => a[axis] - b[axis]);
+      const clusters = [];
+
+      for (const node of sorted) {
+        const value = node[axis];
+        const size = axis === 'x' ? (node.width || 0) : (node.height || 0);
+        const tolerance = Math.max(24, size * 0.45);
+        const cluster = clusters.find((entry) => Math.abs(entry.center - value) <= tolerance);
+
+        if (cluster) {
+          cluster.nodes.push(node);
+          cluster.center = cluster.nodes.reduce((sum, item) => sum + item[axis], 0) / cluster.nodes.length;
+        } else {
+          clusters.push({ center: value, nodes: [node] });
+        }
+      }
+
+      return clusters;
+    }
+
+    function summarizeNodeLabel(node) {
+      const raw = node.characters || node.name || '';
+      const compact = raw.replace(/\s+/g, ' ').trim().slice(0, 28);
+      return compact ? ' "' + compact + '"' : '';
+    }
+
+    function buildSpatialSummary(label, nodes) {
+      const flat = flattenNodes(nodes);
+      const leaves = flat.filter((node) => !node.hasChildren);
+      if (leaves.length === 0) return '';
+
+      const ordered = sortByReadingOrder(leaves);
+      const xs = ordered.map((node) => node.x);
+      const ys = ordered.map((node) => node.y);
+      const rights = ordered.map((node) => node.x + node.width);
+      const bottoms = ordered.map((node) => node.y + node.height);
+      const rows = clusterByAxis(ordered, 'y').length;
+      const cols = clusterByAxis(ordered, 'x').length;
+      const preview = ordered.slice(0, 24).map((node, index) =>
+        (index + 1) + '. ' + node.type + ' ' + node.id +
+        ' @(' + Math.round(node.x) + ',' + Math.round(node.y) + ')' +
+        summarizeNodeLabel(node)
+      );
+
+      return (
+        label + ' SPATIAL SUMMARY:\n' +
+        '- approx_bounds: {' +
+          '"x":' + Math.round(Math.min(...xs)) +
+          ',"y":' + Math.round(Math.min(...ys)) +
+          ',"width":' + Math.round(Math.max(...rights) - Math.min(...xs)) +
+          ',"height":' + Math.round(Math.max(...bottoms) - Math.min(...ys)) +
+        '}\n' +
+        '- approx_rows: ' + rows + '\n' +
+        '- approx_columns: ' + cols + '\n' +
+        '- reading_order:\n' + preview.join('\n')
+      );
+    }
+
+    function boundsOverlap(a, b, padding = 36) {
+      return (
+        a.x - padding < b.x + b.width &&
+        a.x + a.width + padding > b.x &&
+        a.y - padding < b.y + b.height &&
+        a.y + a.height + padding > b.y
+      );
+    }
+
+    function clusterSpatialGroups(nodes) {
+      const leaves = flattenNodes(nodes).filter((node) => !node.hasChildren);
+      const groups = [];
+      const visited = new Set();
+
+      for (const start of leaves) {
+        if (visited.has(start.id)) continue;
+
+        const queue = [start];
+        const members = [];
+        visited.add(start.id);
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          members.push(current);
+
+          const currentBounds = {
+            x: current.x,
+            y: current.y,
+            width: current.width,
+            height: current.height,
+          };
+
+          for (const candidate of leaves) {
+            if (visited.has(candidate.id)) continue;
+            const candidateBounds = {
+              x: candidate.x,
+              y: candidate.y,
+              width: candidate.width,
+              height: candidate.height,
+            };
+            if (!boundsOverlap(currentBounds, candidateBounds, 44)) continue;
+            visited.add(candidate.id);
+            queue.push(candidate);
+          }
+        }
+
+        groups.push(members);
+      }
+
+      return groups.sort((a, b) => {
+        const ax = Math.min(...a.map((node) => node.x));
+        const ay = Math.min(...a.map((node) => node.y));
+        const ah = Math.max(...a.map((node) => node.y + node.height)) - ay;
+        const bx = Math.min(...b.map((node) => node.x));
+        const by = Math.min(...b.map((node) => node.y));
+        const bh = Math.max(...b.map((node) => node.y + node.height)) - by;
+        const rowTolerance = Math.max(24, Math.min(ah, bh) * 0.45);
+        if (Math.abs(ay - by) <= rowTolerance) return ax - bx;
+        return ay - by;
+      });
+    }
+
+    function buildSpatialGroupSummary(label, nodes) {
+      const groups = clusterSpatialGroups(nodes);
+      if (groups.length < 2) return '';
+
+      const lines = groups.slice(0, 16).map((group, index) => {
+        const minX = Math.min(...group.map((node) => node.x));
+        const minY = Math.min(...group.map((node) => node.y));
+        const maxX = Math.max(...group.map((node) => node.x + node.width));
+        const maxY = Math.max(...group.map((node) => node.y + node.height));
+        const preview = sortByReadingOrder(group)
+          .slice(0, 6)
+          .map((node) => node.type + ' ' + node.id + summarizeNodeLabel(node))
+          .join(' | ');
+
+        return (
+          (index + 1) + '. bounds={' +
+          '"x":' + Math.round(minX) +
+          ',"y":' + Math.round(minY) +
+          ',"width":' + Math.round(maxX - minX) +
+          ',"height":' + Math.round(maxY - minY) +
+          '} nodes=' + group.length + ' preview=' + preview
+        );
+      });
+
+      return label + ' SPATIAL GROUPS (reading order):\n' + lines.join('\n');
+    }
+
+    function normalizeInstruction(text) {
+      return text.toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function isLegibilityRequest(text) {
+      const normalized = normalizeInstruction(text);
+      return /(legible|readable|contrast)/.test(normalized) && /\btext\b/.test(normalized);
+    }
+
+    function luminance(color) {
+      if (!color) return null;
+      return (0.2126 * color.r) + (0.7152 * color.g) + (0.0722 * color.b);
+    }
+
+    function colorsClose(a, b) {
+      if (!a || !b) return false;
+      return (
+        Math.abs(a.r - b.r) < 0.04 &&
+        Math.abs(a.g - b.g) < 0.04 &&
+        Math.abs(a.b - b.b) < 0.04 &&
+        Math.abs((a.a ?? 1) - (b.a ?? 1)) < 0.08
+      );
+    }
+
+    function pickLegibleTextColor(background) {
+      const bgLuma = luminance(background);
+      if (bgLuma === null) return null;
+      if (bgLuma < 0.42) return { r: 1, g: 1, b: 1, a: 1 };
+      return { r: 0.08, g: 0.08, b: 0.08, a: 1 };
+    }
+
+    function collectLegibilityActions(nodes, inheritedFillColor, state) {
+      for (const node of nodes || []) {
+        const background = node.fillColor || inheritedFillColor || null;
+        const isTextBearing = node.type === 'TEXT' || node.type === 'STICKY' || node.type === 'SHAPE_WITH_TEXT';
+
+        if (isTextBearing) {
+          const nextColor = pickLegibleTextColor(background);
+          if (nextColor && !colorsClose(node.textColor, nextColor) && !state.fontColorTargets.has(node.id)) {
+            state.fontColorTargets.add(node.id);
+            state.actions.push({ action: 'set_font_color', target: node.id, ...nextColor });
+          }
+
+          if ((node.opacity ?? 1) < 0.98 && !state.opacityTargets.has(node.id)) {
+            state.opacityTargets.add(node.id);
+            state.actions.push({ action: 'set_opacity', target: node.id, opacity: 1 });
+          }
+        }
+
+        if (node.children && node.children.length > 0) {
+          collectLegibilityActions(node.children, background, state);
+        }
+      }
+    }
+
+    function buildLocalActions(instruction) {
+      if (!isLegibilityRequest(instruction)) return null;
+
+      const roots = hasSelection ? selectedNodes : fullBoard;
+      const state = {
+        actions: [],
+        fontColorTargets: new Set(),
+        opacityTargets: new Set(),
+      };
+
+      collectLegibilityActions(roots, null, state);
+
+      if (state.actions.length === 0) {
+        return {
+          actions: [],
+          summary: 'No text needed a local legibility adjustment.',
+          systemText: 'Checked the selected text for local legibility fixes.',
+        };
+      }
+
+      const changedTextCount = state.fontColorTargets.size;
+      return {
+        actions: state.actions,
+        summary: 'Adjusted text color for ' + changedTextCount + ' text node(s) to improve contrast.',
+        systemText: 'Applying a local legibility fix to ' + changedTextCount + ' text node(s)…',
+      };
+    }
+
+    function extractNames(instruction) {
+      const source = instruction.trim();
+      const explicitMatch = source.match(/(?:names?(?:\s+are|\s+should\s+be|\s+to\s+be)?|it'?s going to be|they'?re going to be)\s*:?\s*(.+)$/i);
+      const tail = explicitMatch ? explicitMatch[1] : (source.includes(':') ? source.split(':').slice(1).join(':') : '');
+      if (!tail) return [];
+
+      return tail
+        .replace(/\band\b/gi, ',')
+        .split(',')
+        .map((name) => name.trim().replace(/^["']|["']$/g, ''))
+        .filter(Boolean);
+    }
+
+    function parseOrdinalToken(token) {
+      if (!token) return null;
+      const normalized = token.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const numericMatch = normalized.match(/^(\d+)(?:st|nd|rd|th)?$/);
+      if (numericMatch) return Number(numericMatch[1]);
+
+      const words = {
+        first: 1,
+        second: 2,
+        third: 3,
+        fourth: 4,
+        fifth: 5,
+        sixth: 6,
+        seventh: 7,
+        eighth: 8,
+        ninth: 9,
+        tenth: 10,
+      };
+      return words[normalized] || null;
+    }
+
+    function buildOrderedSwapIntent(instruction) {
+      const match = instruction.match(/swap\s+(?:the\s+)?([a-z0-9]+(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+(?:one|item|card|column|row|step|section|group)?\s*(?:with|and)\s+(?:the\s+)?([a-z0-9]+(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)/i);
+      if (!match) return null;
+
+      const firstIndex = parseOrdinalToken(match[1]);
+      const secondIndex = parseOrdinalToken(match[2]);
+      if (!firstIndex || !secondIndex || firstIndex === secondIndex) return null;
+
+      const intent = { kind: 'ordered-swap', firstIndex, secondIndex };
+
+      // Compute spatial groups so code.ts can swap without relying on Figma selection clustering
+      const roots = hasSelection ? selectedNodes : fullBoard;
+      if (roots.length >= 2) {
+        const allFlat = flattenNodes(roots);
+        const spatialGroups = clusterSpatialGroups(roots);
+        if (spatialGroups.length >= Math.max(firstIndex, secondIndex)) {
+          const findRootId = (nodeId) => {
+            let current = allFlat.find(n => n.id === nodeId);
+            while (current && current.depth > 0 && current.parentId) {
+              current = allFlat.find(n => n.id === current.parentId);
+            }
+            return current ? current.id : nodeId;
+          };
+          intent.groupIds = spatialGroups.map(group => {
+            const topIds = new Set(group.map(leaf => findRootId(leaf.id)));
+            return [...topIds];
+          });
+        }
+      }
+
+      return {
+        intent,
+        summary: 'Swapped the ' + firstIndex + ordinalSuffix(firstIndex) + ' group with the ' + secondIndex + ordinalSuffix(secondIndex) + ' group.',
+        systemText: 'Applying a local spatial swap…',
+      };
+    }
+
+    function ordinalSuffix(value) {
+      const mod100 = value % 100;
+      if (mod100 >= 11 && mod100 <= 13) return 'th';
+      const mod10 = value % 10;
+      if (mod10 === 1) return 'st';
+      if (mod10 === 2) return 'nd';
+      if (mod10 === 3) return 'rd';
+      return 'th';
+    }
+
+    function buildRepeatedGridIntent(instruction) {
+      const normalized = normalizeInstruction(instruction);
+      const peoplePattern = '(?:ppl|people|persons|person|participants|folks|guests)';
+      const addMatch = normalized.match(new RegExp('(?:for|add)\\s+(\\d+)\\s+more\\s+' + peoplePattern));
+      const setMatch = normalized.match(new RegExp('for\\s+(?:only\\s+)?(\\d+)\\s+' + peoplePattern));
+      const names = extractNames(instruction);
+      const mentionsNames = /\b(name|names|populate|fill in|fill out|assign)\b/i.test(instruction);
+
+      const intent = { kind: 'repeated-grid' };
+      if (addMatch) {
+        intent.addCount = Number(addMatch[1]);
+      } else if (setMatch) {
+        intent.targetCount = Number(setMatch[1]);
+      }
+      if (names.length > 0) {
+        intent.names = names;
+      }
+
+      if (
+        intent.addCount === undefined &&
+        intent.targetCount === undefined &&
+        !(mentionsNames && names.length > 0)
+      ) {
+        return null;
+      }
+
+      // Compute spatial groups so code.ts clones whole groups, not just sticky columns
+      const roots = hasSelection ? selectedNodes : fullBoard;
+      if (roots.length >= 2) {
+        const allFlat = flattenNodes(roots);
+        const spatialGroups = clusterSpatialGroups(roots);
+        if (spatialGroups.length >= 2) {
+          // Map each leaf node to its depth-0 ancestor in the selection
+          const findRootId = (nodeId) => {
+            let current = allFlat.find(n => n.id === nodeId);
+            while (current && current.depth > 0 && current.parentId) {
+              current = allFlat.find(n => n.id === current.parentId);
+            }
+            return current ? current.id : nodeId;
+          };
+          intent.groupIds = spatialGroups.map(group => {
+            const topIds = new Set(group.map(leaf => findRootId(leaf.id)));
+            return [...topIds];
+          });
+          intent.groupCount = spatialGroups.length;
+        }
+      }
+
+      const summaryParts = [];
+      if (intent.targetCount !== undefined) summaryParts.push('updated the repeated layout for ' + intent.targetCount + ' people');
+      if (intent.addCount !== undefined) summaryParts.push('added ' + intent.addCount + ' more people to the repeated layout');
+      if (intent.names && intent.names.length > 0) summaryParts.push('populated names');
+
+      return {
+        intent,
+        summary: summaryParts.length > 0
+          ? summaryParts[0].charAt(0).toUpperCase() + summaryParts[0].slice(1) + (summaryParts.length > 1 ? ' and ' + summaryParts.slice(1).join(' and ') + '.' : '.')
+          : 'Updated the repeated layout.',
+        systemText: 'Applying a local repeated-layout plan…',
+      };
+    }
+
+    // ─── Schema validation ───────────────────────────────────────────────────
+
+    function validateActions(actions) {
+      const valid = [];
+      const skipped = [];
+
+      for (const a of actions) {
+        if (!a || typeof a.action !== 'string' || !KNOWN_ACTIONS.has(a.action)) {
+          skipped.push('Unknown action: ' + (a?.action ?? '(none)'));
+          continue;
+        }
+
+        let ok = true;
+        switch (a.action) {
+          case 'update_text':
+            ok = typeof a.target === 'string' && typeof a.value === 'string'; break;
+          case 'move_nodes_down':
+            ok = Array.isArray(a.target_group) && typeof a.distance === 'number'; break;
+          case 'reposition_section':
+            ok = typeof a.section_id === 'string' && typeof a.new_x === 'number' && typeof a.new_y === 'number'; break;
+          case 'lock_nodes':
+          case 'unlock_nodes':
+            ok = Array.isArray(a.node_ids); break;
+          case 'duplicate_section':
+            ok = typeof a.source_id === 'string'; break;
+          case 'insert_new_sticky':
+            ok = typeof a.text === 'string' && typeof a.position === 'object'; break;
+        }
+
+        if (ok) valid.push(a);
+        else skipped.push('Malformed action: ' + a.action);
+      }
+
+      return { valid, skipped };
+    }
+
+    // ─── LLM call ────────────────────────────────────────────────────────────
+
+    async function sendToLLM(instruction) {
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) throw new Error('Enter your OpenAI API key above.');
+
+      // Build context clearly separating selected vs full board
+      let boardContext = '';
+      if (hasSelection && selectedNodes.length > 0) {
+        const selectedSummary = buildSpatialSummary('SELECTED', selectedNodes);
+        const selectedGroups = buildSpatialGroupSummary('SELECTED', selectedNodes);
+        const boardSummary = buildSpatialSummary('NEARBY BOARD', fullBoard);
+        boardContext =
+          (selectedSummary ? selectedSummary + '\n\n' : '') +
+          (selectedGroups ? selectedGroups + '\n\n' : '') +
+          'SELECTED NODES (what the user is referring to with "this"/"these"):\n' +
+          JSON.stringify(selectedNodes, null, 2) +
+          '\n\n' +
+          (boardSummary ? boardSummary + '\n\n' : '') +
+          '\n\nFULL BOARD (for additional context):\n' +
+          JSON.stringify(fullBoard, null, 2);
+      } else {
+        const boardSummary = buildSpatialSummary('BOARD', fullBoard);
+        boardContext =
+          (boardSummary ? boardSummary + '\n\n' : '') +
+          'FULL BOARD (no selection — use all nodes as context):\n' +
+          JSON.stringify(fullBoard, null, 2);
+      }
+
+      const userMsg = boardContext + '\n\nInstruction: "' + instruction + '"\n\nReturn the JSON object now.';
+
+      const res = await fetch(OPENAI_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user',   content: userMsg },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'OpenAI error ' + res.status);
+
+      const raw = data.choices?.[0]?.message?.content ?? '{}';
+      return JSON.parse(raw);
+    }
+
+    // ─── Send handler ────────────────────────────────────────────────────────
+
+    async function handleSend() {
+      if (isLoading) return;
+
+      const text = msgInput.value.trim();
+      if (!text) return;
+
+      isLoading = true;
+      msgInput.value = '';
+      msgInput.style.height = 'auto';
+      sendBtn.disabled = true;
+
+      // Show user bubble immediately — before anything async
+      addMessage('user', text);
+      showThinking();
+
+      try {
+        // Pull fresh selection (times out after 600ms and uses cached state)
+        await getFreshSelection();
+
+        const localResult = buildLocalActions(text);
+        if (localResult) {
+          hideThinking();
+          if (localResult.actions.length === 0) {
+            addMessage('assistant', localResult.summary);
+            isLoading = false;
+            sendBtn.disabled = false;
+            return;
+          }
+
+          addMessage('system', localResult.systemText);
+          parent.postMessage({ pluginMessage: { type: 'apply-actions', actions: localResult.actions } }, '*');
+          pendingSummary = localResult.summary;
+          return;
+        }
+
+        const swapIntent = buildOrderedSwapIntent(text);
+        if (swapIntent) {
+          hideThinking();
+          addMessage('system', swapIntent.systemText);
+          parent.postMessage({ pluginMessage: { type: 'apply-layout-intent', intent: swapIntent.intent } }, '*');
+          pendingSummary = swapIntent.summary;
+          return;
+        }
+
+        const gridIntent = buildRepeatedGridIntent(text);
+        if (gridIntent) {
+          hideThinking();
+          addMessage('system', gridIntent.systemText);
+          parent.postMessage({ pluginMessage: { type: 'apply-layout-intent', intent: gridIntent.intent } }, '*');
+          pendingSummary = gridIntent.summary;
+          return;
+        }
+
+        const contextLabel = hasSelection
+          ? selectedNodes.length + ' selected node(s)'
+          : fullBoard.length + ' board node(s) (no selection)';
+        addMessage('system', 'Sending to AI with ' + contextLabel + '…');
+
+        const response = await sendToLLM(text);
+
+        if (!response || typeof response !== 'object') {
+          throw new Error('AI returned empty response. Check your API key.');
+        }
+        if (!Array.isArray(response.actions)) {
+          throw new Error('AI response missing actions array. Got: ' + JSON.stringify(response).slice(0, 300));
+        }
+
+        const { valid, skipped } = validateActions(response.actions);
+
+        if (skipped.length > 0) {
+          addMessage('system', 'Skipped ' + skipped.length + ' invalid action(s): ' + skipped.join('; '));
+        }
+
+        if (valid.length === 0) {
+          hideThinking();
+          addMessage('assistant', response.summary || 'No actions to apply — the AI couldn\'t map your request to board actions.');
+          isLoading = false;
+          sendBtn.disabled = false;
+        } else {
+          addMessage('system', 'Applying ' + valid.length + ' action(s) to the board…');
+          parent.postMessage({ pluginMessage: { type: 'apply-actions', actions: valid } }, '*');
+          pendingSummary = response.summary || '';
+        }
+
+      } catch (err) {
+        hideThinking();
+        const msg = err instanceof Error ? err.message : String(err);
+        addMessage('error', msg);
+        isLoading = false;
+        sendBtn.disabled = false;
+      }
+    }
+
+    // Holds summary while waiting for apply-complete
+    let pendingSummary = '';
+
+    // ─── Plugin messages ─────────────────────────────────────────────────────
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'api-key') {
+        if (msg.key) apiKeyInput.value = msg.key;
+        return;
+      }
+
+      if (msg.type === 'selection') {
+        updateSelectionBadge(msg.nodes, msg.boardSnapshot, msg.hasSelection);
+      }
+
+      if (msg.type === 'plugin-error') {
+        hideThinking();
+        addMessage('error', 'Plugin error: ' + msg.message);
+        pendingSummary = '';
+        isLoading = false;
+        sendBtn.disabled = false;
+        return;
+      }
+
+      if (msg.type === 'apply-complete') {
+        hideThinking();
+
+        const hasErrors = msg.errors && msg.errors.length > 0;
+        const appliedText = 'Applied ' + msg.count + ' action' + (msg.count !== 1 ? 's' : '');
+
+        addMessage('assistant', pendingSummary || 'Done.', {
+          text: hasErrors ? appliedText + ' · ' + msg.errors.length + ' warning(s)' : appliedText,
+          warn: hasErrors,
+        });
+
+        if (hasErrors) {
+          addMessage('system', msg.errors.join(' · '));
+        }
+
+        pendingSummary = '';
+        isLoading = false;
+        sendBtn.disabled = false;
+      }
+    };
+
+    // ─── Input events ─────────────────────────────────────────────────────────
+
+    // Help panel toggle
+    const helpBtn   = document.getElementById('helpBtn');
+    const helpPanel = document.getElementById('helpPanel');
+    helpBtn.addEventListener('click', () => {
+      const open = helpPanel.classList.toggle('visible');
+      helpBtn.classList.toggle('active', open);
+    });
+
+    // Signal ready after everything is wired up; retry once in case of a race
+    function signalReady() {
+      parent.postMessage({ pluginMessage: { type: 'ready' } }, '*');
+    }
+    signalReady();
+    setTimeout(signalReady, 400);
+
+    sendBtn.addEventListener('click', handleSend);
+
+    msgInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    // Auto-resize textarea
+    msgInput.addEventListener('input', () => {
+      msgInput.style.height = 'auto';
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 100) + 'px';
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "FigJam Workshop AI",
+  "id": "1626886731187207974",
+  "api": "1.0.0",
+  "main": "src/code.js",
+  "ui": "src/ui.html",
+  "editorType": ["figjam"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["https://api.openai.com"]
+  }
+}
